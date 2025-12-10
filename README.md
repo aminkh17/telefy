@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Telefy - Telegram Music Client
 
-## Getting Started
+This is a Next.js application that acts as a specialized Telegram client for music.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Telegram Login:** Securely log in with your existing Telegram account.
+- **Music Only:** Automatically filters your chats to show only audio files.
+- **Player:** Built-in audio player with persistent controls.
+- **Search:** Quickly find tracks by title or artist.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1.  **Get API Credentials:**
+    - Go to [my.telegram.org](https://my.telegram.org) and log in.
+    - Click on "API development tools".
+    - Create a new application to get your `API_ID` and `API_HASH`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2.  **Configure Environment:**
+    - Copy `.env.local.example` to `.env.local`:
+      ```bash
+      cp .env.local.example .env.local
+      ```
+    - Open `.env.local` and paste your `API_ID` and `API_HASH`.
 
-## Learn More
+3.  **Run the App:**
+    ```bash
+    npm install
+    npm run dev
+    ```
 
-To learn more about Next.js, take a look at the following resources:
+4.  **Login:**
+    - Open `http://localhost:3000`.
+    - Enter your phone number (international format, e.g., `+1234567890`).
+    - Enter the code sent to your Telegram app.
+    - (Optional) Enter your 2FA password if enabled.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Technologies
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Next.js 15 (App Router)
+- React 19
+- Tailwind CSS
+- GramJS (Telegram Client)
+- Lucide React (Icons)
