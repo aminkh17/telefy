@@ -23,8 +23,8 @@ export default function Auth() {
     try {
       const result = await client.invoke(
         new Api.auth.SendCode({
-          apiId: parseInt(process.env.NEXT_PUBLIC_TELEGRAM_API_ID || "0"),
-          apiHash: process.env.NEXT_PUBLIC_TELEGRAM_API_HASH || "",
+          apiId: parseInt(process.env.TELEGRAM_API_ID || "0"),
+          apiHash: process.env.TELEGRAM_API_HASH || "",
           phoneNumber: phoneNumber,
           settings: new Api.CodeSettings({
             allowFlashcall: false,
@@ -85,8 +85,8 @@ export default function Auth() {
     setIsLoading(true);
     setError("");
 
-    const apiId = parseInt(process.env.NEXT_PUBLIC_TELEGRAM_API_ID || "0");
-    const apiHash = process.env.NEXT_PUBLIC_TELEGRAM_API_HASH || "";
+    const apiId = parseInt(process.env.TELEGRAM_API_ID || "0");
+    const apiHash = process.env.TELEGRAM_API_HASH || "";
 
     try {
       // Use signInWithPassword helper which handles SRP calculation

@@ -48,8 +48,8 @@ export const TelegramProvider = ({ children }: { children: React.ReactNode }) =>
     const initClient = async () => {
         if (sessionString === null) return; // Wait for local storage load
 
-        const apiId = process.env.NEXT_PUBLIC_TELEGRAM_API_ID;
-        const apiHash = process.env.NEXT_PUBLIC_TELEGRAM_API_HASH;
+        const apiId = process.env.TELEGRAM_API_ID;
+        const apiHash = process.env.TELEGRAM_API_HASH;
 
         if (!apiId || !apiHash) {
           console.error("Missing API_ID or API_HASH");
