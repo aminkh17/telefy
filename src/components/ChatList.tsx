@@ -38,7 +38,7 @@ export default function ChatList() {
     if (!client) return;
     setIsLoading(true);
     try {
-      const result = await client.getDialogs({ limit: 150 }); // Fetch top 50 chats
+      const result = await client.getDialogs({ limit: 50 }); // Fetch top 50 chats
 
       const mappedDialogs: DialogItem[] = result.map(d => {
         let title = d.title || "Unknown";
