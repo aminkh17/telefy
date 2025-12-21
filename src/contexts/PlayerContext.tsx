@@ -24,12 +24,18 @@ interface PlayerContextType {
   currentTime: number;
   downloadProgress: number; // 0 to 100
   volume: number;
+  shuffle: boolean;
+  repeatMode: 'off' | 'all' | 'one';
+  reversed: boolean;
   playTrack: (track: Track, queue?: Track[]) => void;
   togglePlay: () => void;
   seek: (time: number) => void;
   setVolume: (volume: number) => void;
-  nextTrack: () => void;
+  nextTrack: (auto?: boolean) => void;
   prevTrack: () => void;
+  toggleShuffle: () => void;
+  toggleRepeat: () => void;
+  toggleReverse: () => void;
 }
 
 const PlayerContext = createContext<PlayerContextType>({
@@ -40,12 +46,18 @@ const PlayerContext = createContext<PlayerContextType>({
   currentTime: 0,
   downloadProgress: 0,
   volume: 1,
+  shuffle: false,
+  repeatMode: 'off',
+  reversed: false,
   playTrack: () => {},
   togglePlay: () => {},
   seek: () => {},
   setVolume: () => {},
   nextTrack: () => {},
   prevTrack: () => {},
+  toggleShuffle: () => {},
+  toggleRepeat: () => {},
+  toggleReverse: () => {},
 });
 
 export const usePlayer = () => useContext(PlayerContext);
@@ -61,94 +73,28 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
   const [volume, setVolumeState] = useState(1);
   const [queue, setQueue] = useState<Track[]>([]);
   
+  const [shuffle, setShuffle] = useState(false);
+  const [repeatMode, setRepeatMode] = useState<'off' | 'all' | 'one'>('off');
+  const [reversed, setReversed] = useState(false);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const streamerRef = useRef<AudioStreamer | null>(null);
 
+  // Refs for callbacks to be used in static listeners
+  const nextTrackRef = useRef<((auto?: boolean) => void) | undefined>(undefined);
+  const prevTrackRef = useRef<(() => void) | undefined>(undefined);
+  const seekRef = useRef<((time: number) => void) | undefined>(undefined);
+
+  // Ref-based state access for event listeners
+  const stateRef = useRef({ queue, currentTrack, shuffle, repeatMode, reversed, isPlaying });
   useEffect(() => {
-    audioRef.current = new Audio();
-    // Pass progress callback
-    streamerRef.current = new AudioStreamer(audioRef.current, (prog) => {
-        setDownloadProgress(prog);
-    });
-    
-    const audio = audioRef.current;
-
-    const updateProgress = () => {
-      if (audio.duration) {
-        setCurrentTime(audio.currentTime);
-        setProgress((audio.currentTime / audio.duration) * 100);
-      }
-    };
-    
-    const handleWaiting = () => setIsBuffering(true);
-    const handlePlaying = () => {
-        setIsBuffering(false);
-        setIsPlaying(true);
-        updateMediaSessionState();
-    };
-    const handlePause = () => {
-        setIsPlaying(false);
-        updateMediaSessionState();
-    };
-
-    const handleEnded = () => {
-      setIsPlaying(false);
-      setIsBuffering(false);
-      setProgress(0);
-      setCurrentTime(0);
-      nextTrack();
-    };
-    
-    const handleError = (e: Event) => {
-        console.error("Audio playback error:", e);
-        setIsPlaying(false);
-        setIsBuffering(false);
-    };
-
-    audio.addEventListener("timeupdate", updateProgress);
-    audio.addEventListener("ended", handleEnded);
-    audio.addEventListener("error", handleError);
-    audio.addEventListener("waiting", handleWaiting);
-    audio.addEventListener("playing", handlePlaying);
-    audio.addEventListener("pause", handlePause);
-
-    // Initialize Media Session actions
-    if ('mediaSession' in navigator) {
-        navigator.mediaSession.setActionHandler('play', () => {
-             audio.play().catch(console.error);
-        });
-        navigator.mediaSession.setActionHandler('pause', () => {
-             audio.pause();
-        });
-        navigator.mediaSession.setActionHandler('previoustrack', () => {
-             prevTrack();
-        });
-        navigator.mediaSession.setActionHandler('nexttrack', () => {
-             nextTrack();
-        });
-        navigator.mediaSession.setActionHandler('seekto', (details) => {
-             if (details.seekTime && isFinite(details.seekTime)) {
-                 seek(details.seekTime);
-             }
-        });
-    }
-
-    return () => {
-      audio.removeEventListener("timeupdate", updateProgress);
-      audio.removeEventListener("ended", handleEnded);
-      audio.removeEventListener("error", handleError);
-      audio.removeEventListener("waiting", handleWaiting);
-      audio.removeEventListener("playing", handlePlaying);
-      audio.removeEventListener("pause", handlePause);
-      audio.pause();
-      if (streamerRef.current) streamerRef.current.cleanup();
-    };
-  }, []);
+      stateRef.current = { queue, currentTrack, shuffle, repeatMode, reversed, isPlaying };
+  }, [queue, currentTrack, shuffle, repeatMode, reversed, isPlaying]);
 
   const updateMediaSessionState = useCallback(() => {
-      if (!currentTrack || !('mediaSession' in navigator)) return;
-      navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
-  }, [currentTrack, isPlaying]);
+      if (!stateRef.current.currentTrack || !('mediaSession' in navigator)) return;
+      navigator.mediaSession.playbackState = stateRef.current.isPlaying ? 'playing' : 'paused';
+  }, []);
 
   const updateMediaSessionMetadata = useCallback((track: Track) => {
       if (!('mediaSession' in navigator)) return;
@@ -247,32 +193,198 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
   const setVolume = useCallback((val: number) => {
       setVolumeState(Math.max(0, Math.min(1, val)));
   }, []);
-  
-  const nextTrack = useCallback(() => {
+
+  const toggleShuffle = useCallback(() => setShuffle(prev => !prev), []);
+  const toggleReverse = useCallback(() => setReversed(prev => !prev), []);
+  const toggleRepeat = useCallback(() => {
+      setRepeatMode(prev => {
+          if (prev === 'off') return 'all';
+          if (prev === 'all') return 'one';
+          return 'off';
+      });
+  }, []);
+
+  const nextTrack = useCallback((auto = false) => {
+      const { queue, currentTrack, shuffle, repeatMode, reversed } = stateRef.current;
+      
       if (!currentTrack || queue.length === 0) return;
       
-      const currentIndex = queue.findIndex(t => t.id === currentTrack.id);
-      if (currentIndex !== -1 && currentIndex < queue.length - 1) {
-          const next = queue[currentIndex + 1];
-          playTrack(next);
+      // Handle Repeat One on Auto (Ended)
+      if (auto && repeatMode === 'one') {
+          if (audioRef.current) {
+              audioRef.current.currentTime = 0;
+              audioRef.current.play().catch(console.error);
+          }
+          return;
       }
-  }, [currentTrack, queue, playTrack]);
-  
-  const prevTrack = useCallback(() => {
-      if (!currentTrack || queue.length === 0) return;
-      
+
+      let nextIndex = -1;
       const currentIndex = queue.findIndex(t => t.id === currentTrack.id);
-      if (currentIndex > 0) {
-          const prev = queue[currentIndex - 1];
-          playTrack(prev);
+
+      if (shuffle) {
+          // Simple random for now
+          // Ensure we don't pick the same track if queue > 1
+          if (queue.length === 1) nextIndex = 0;
+          else {
+              do {
+                  nextIndex = Math.floor(Math.random() * queue.length);
+              } while (nextIndex === currentIndex);
+          }
       } else {
-          // Restart current
-          seek(0);
+          // Normal or Reversed
+          if (reversed) {
+              nextIndex = currentIndex - 1;
+              if (nextIndex < 0) {
+                  if (repeatMode === 'all') nextIndex = queue.length - 1;
+                  else nextIndex = -1; // Stop
+              }
+          } else {
+              nextIndex = currentIndex + 1;
+              if (nextIndex >= queue.length) {
+                  if (repeatMode === 'all') nextIndex = 0;
+                  else nextIndex = -1; // Stop
+              }
+          }
       }
-  }, [currentTrack, queue, playTrack, seek]);
+
+      if (nextIndex !== -1) {
+          playTrack(queue[nextIndex]);
+      }
+  }, [playTrack]);
+
+  const prevTrack = useCallback(() => {
+      const { queue, currentTrack, shuffle, reversed } = stateRef.current;
+      if (!currentTrack || queue.length === 0) return;
+      
+      // If playing > 3s, restart track
+      if (audioRef.current && audioRef.current.currentTime > 3) {
+          audioRef.current.currentTime = 0;
+          return;
+      }
+      
+      // Logic for prev is basically reverse of next
+      let prevIndex = -1;
+      const currentIndex = queue.findIndex(t => t.id === currentTrack.id);
+      
+      if (shuffle) {
+           // Random prev? Usually history. For now, random.
+           if (queue.length === 1) prevIndex = 0;
+           else {
+               do {
+                   prevIndex = Math.floor(Math.random() * queue.length);
+               } while (prevIndex === currentIndex);
+           }
+      } else {
+          if (reversed) {
+              // Prev in reversed mode is index + 1
+              prevIndex = currentIndex + 1;
+              if (prevIndex >= queue.length) prevIndex = 0; // Loop always on prev
+          } else {
+              prevIndex = currentIndex - 1;
+              if (prevIndex < 0) prevIndex = queue.length - 1;
+          }
+      }
+      
+      if (prevIndex !== -1) {
+          playTrack(queue[prevIndex]);
+      }
+  }, [playTrack]);
+
+  // Keep refs updated for listeners
+  useEffect(() => {
+      nextTrackRef.current = nextTrack;
+      prevTrackRef.current = prevTrack;
+      seekRef.current = seek;
+  }, [nextTrack, prevTrack, seek]);
+
+  useEffect(() => {
+    audioRef.current = new Audio();
+    // Pass progress callback
+    streamerRef.current = new AudioStreamer(audioRef.current, (prog) => {
+        setDownloadProgress(prog);
+    });
+    
+    const audio = audioRef.current;
+
+    const updateProgress = () => {
+      if (audio.duration) {
+        setCurrentTime(audio.currentTime);
+        setProgress((audio.currentTime / audio.duration) * 100);
+      }
+    };
+    
+    const handleWaiting = () => setIsBuffering(true);
+    const handlePlaying = () => {
+        setIsBuffering(false);
+        setIsPlaying(true);
+        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+    };
+    const handlePause = () => {
+        setIsPlaying(false);
+        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
+    };
+
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setIsBuffering(false);
+      setProgress(0);
+      setCurrentTime(0);
+      if (nextTrackRef.current) nextTrackRef.current(true);
+    };
+    
+    const handleError = (e: Event) => {
+        console.error("Audio playback error:", e);
+        setIsPlaying(false);
+        setIsBuffering(false);
+    };
+
+    audio.addEventListener("timeupdate", updateProgress);
+    audio.addEventListener("ended", handleEnded);
+    audio.addEventListener("error", handleError);
+    audio.addEventListener("waiting", handleWaiting);
+    audio.addEventListener("playing", handlePlaying);
+    audio.addEventListener("pause", handlePause);
+
+    // Initialize Media Session actions
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.setActionHandler('play', () => {
+             audio.play().catch(console.error);
+        });
+        navigator.mediaSession.setActionHandler('pause', () => {
+             audio.pause();
+        });
+        navigator.mediaSession.setActionHandler('previoustrack', () => {
+             if (prevTrackRef.current) prevTrackRef.current();
+        });
+        navigator.mediaSession.setActionHandler('nexttrack', () => {
+             if (nextTrackRef.current) nextTrackRef.current();
+        });
+        navigator.mediaSession.setActionHandler('seekto', (details) => {
+             if (details.seekTime && isFinite(details.seekTime)) {
+                 if (seekRef.current) seekRef.current(details.seekTime);
+             }
+        });
+    }
+
+    return () => {
+      audio.removeEventListener("timeupdate", updateProgress);
+      audio.removeEventListener("ended", handleEnded);
+      audio.removeEventListener("error", handleError);
+      audio.removeEventListener("waiting", handleWaiting);
+      audio.removeEventListener("playing", handlePlaying);
+      audio.removeEventListener("pause", handlePause);
+      audio.pause();
+      if (streamerRef.current) streamerRef.current.cleanup();
+    };
+  }, []); 
 
   return (
-    <PlayerContext.Provider value={{ currentTrack, isPlaying, isBuffering, progress, currentTime, downloadProgress, volume, playTrack, togglePlay, seek, setVolume, nextTrack, prevTrack }}>
+    <PlayerContext.Provider value={{ 
+        currentTrack, isPlaying, isBuffering, progress, currentTime, downloadProgress, volume, 
+        shuffle, repeatMode, reversed,
+        playTrack, togglePlay, seek, setVolume, nextTrack, prevTrack,
+        toggleShuffle, toggleRepeat, toggleReverse
+    }}>
       {children}
     </PlayerContext.Provider>
   );

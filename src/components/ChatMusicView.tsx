@@ -159,36 +159,36 @@ export default function ChatMusicView() {
         <div className="flex items-center gap-4 mb-6">
             <button 
                 onClick={() => selectChat(null)}
-                className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-purple-900/30 transition-colors"
             >
-                <ArrowLeft className="w-6 h-6" />
+                <ArrowLeft className="w-6 h-6 dark:text-purple-400" />
             </button>
             <div className="flex items-center gap-4 flex-1 overflow-hidden">
                  {/* Chat Photo */}
-                 <div className="w-10 h-10 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0">
+                 <div className="w-10 h-10 rounded-full bg-zinc-200 dark:bg-purple-900/30 flex items-center justify-center overflow-hidden shrink-0 border border-transparent dark:border-purple-500/20">
                     {selectedChatPhotoUrl ? (
                          // eslint-disable-next-line @next/next/no-img-element
                         <img src={selectedChatPhotoUrl} alt="" className="w-full h-full object-cover" />
                     ) : (
-                        <Music className="w-5 h-5 text-zinc-500" />
+                        <Music className="w-5 h-5 text-zinc-500 dark:text-purple-400" />
                     )}
                  </div>
 
                 <div className="flex-1 overflow-hidden">
-                    <h1 className="text-xl font-bold truncate">{selectedChatTitle || "Chat Music"}</h1>
-                    <p className="text-sm text-zinc-500">{tracks.length} tracks found</p>
+                    <h1 className="text-xl font-bold truncate dark:text-purple-50 dark:drop-shadow-[0_0_5px_rgba(168,85,247,0.5)]">{selectedChatTitle || "Chat Music"}</h1>
+                    <p className="text-sm text-zinc-500 dark:text-purple-400/70">{tracks.length} tracks found</p>
                 </div>
             </div>
         </div>
 
         <div className="relative mb-6">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 dark:text-purple-400/50" />
             <input 
                 type="text" 
                 placeholder="Search tracks or artists..." 
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-10 pr-4 py-2 rounded-lg bg-zinc-50 dark:bg-[#1a0b2e] border border-zinc-200 dark:border-purple-500/20 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-purple-500/50 dark:text-purple-100 placeholder-zinc-400 dark:placeholder-purple-400/30 transition-all shadow-inner"
             />
         </div>
 
@@ -201,35 +201,35 @@ export default function ChatMusicView() {
                     <div 
                         key={track.id}
                         onClick={() => handlePlay(track)}
-                        className={`flex items-center p-3 rounded-lg cursor-pointer transition-colors group
-                            ${isCurrent ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-zinc-50 dark:hover:bg-zinc-900'}
+                        className={`flex items-center p-3 rounded-lg cursor-pointer transition-all group border border-transparent
+                            ${isCurrent ? 'bg-blue-50 dark:bg-purple-900/40 dark:border-purple-500/30 shadow-[0_0_15px_rgba(147,51,234,0.1)]' : 'hover:bg-zinc-50 dark:hover:bg-purple-900/20 dark:hover:border-purple-500/10'}
                         `}
                     >
-                        <div className="w-12 h-12 rounded-md bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center mr-4 shrink-0 overflow-hidden relative">
+                        <div className="w-12 h-12 rounded-md bg-zinc-200 dark:bg-purple-900/30 flex items-center justify-center mr-4 shrink-0 overflow-hidden relative">
                             {track.imageUrl ? (
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img src={track.imageUrl} alt="" className="w-full h-full object-cover" />
                             ) : (
-                                <Music className="w-5 h-5 text-zinc-400" />
+                                <Music className="w-5 h-5 text-zinc-400 dark:text-purple-500/50" />
                             )}
                             
                             {/* Overlay Play/Pause on hover or active */}
-                            <div className={`absolute inset-0 bg-black/20 flex items-center justify-center transition-opacity ${isCurrent ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                            <div className={`absolute inset-0 bg-black/20 dark:bg-black/40 flex items-center justify-center transition-opacity ${isCurrent ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                                 {isPlayingCurrent ? (
-                                    <Pause className="w-5 h-5 text-white fill-current" />
+                                    <Pause className="w-5 h-5 text-white dark:text-purple-200 fill-current" />
                                 ) : (
-                                    <Play className="w-5 h-5 text-white fill-current" />
+                                    <Play className="w-5 h-5 text-white dark:text-purple-200 fill-current" />
                                 )}
                             </div>
                         </div>
                         
                         <div className="flex-1 min-w-0">
-                            <h3 className={`font-medium truncate ${isCurrent ? 'text-blue-600 dark:text-blue-400' : 'text-zinc-900 dark:text-zinc-100'}`}>
+                            <h3 className={`font-medium truncate transition-colors ${isCurrent ? 'text-blue-600 dark:text-purple-300' : 'text-zinc-900 dark:text-purple-100 group-hover:dark:text-white'}`}>
                                 {track.title}
                             </h3>
-                            <p className="text-sm text-zinc-500 truncate">{track.artist}</p>
+                            <p className="text-sm text-zinc-500 dark:text-purple-400/60 truncate">{track.artist}</p>
                         </div>
-                        <div className="text-xs text-zinc-400 ml-4 tabular-nums">
+                        <div className="text-xs text-zinc-400 dark:text-purple-500/50 ml-4 tabular-nums">
                             {Math.floor(track.duration / 60)}:{(track.duration % 60).toString().padStart(2, '0')}
                         </div>
                     </div>

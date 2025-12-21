@@ -4,6 +4,7 @@ import "./globals.css";
 import { TelegramProvider } from "../contexts/TelegramProvider";
 import { PlayerProvider } from "../contexts/PlayerContext";
 import { ChatProvider } from "../contexts/ChatProvider";
+import { ThemeProvider } from "../components/ThemeProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,17 +27,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 min-h-screen`}
-      >
-        <TelegramProvider>
-            <ChatProvider>
-                <PlayerProvider>
-                    {children}
-                </PlayerProvider>
+        <html lang="en" suppressHydrationWarning>
+          <body
+            className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white dark:bg-shiny-cyber text-zinc-900 dark:text-purple-50 min-h-screen`}
+          >
+            <ThemeProvider>
+                <TelegramProvider>            <ChatProvider>
+              <PlayerProvider>
+                {children}
+              </PlayerProvider>
             </ChatProvider>
-        </TelegramProvider>
+          </TelegramProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

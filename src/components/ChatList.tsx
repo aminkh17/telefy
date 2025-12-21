@@ -143,8 +143,8 @@ export default function ChatList() {
 
   return (
     <div className="w-full max-w-2xl mx-auto p-4 pb-32">
-      <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-          <MessageSquare className="w-6 h-6" />
+      <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 dark:text-purple-100 dark:drop-shadow-[0_0_5px_rgba(168,85,247,0.5)]">
+          <MessageSquare className="w-6 h-6 dark:text-purple-400" />
           Chats
       </h2>
       <div className="space-y-1">
@@ -153,30 +153,30 @@ export default function ChatList() {
             key={chat.id.toString()}
             onClick={() => handleChatClick(chat)}
             data-index={index}
-            className="chat-item-observer w-full flex items-center p-3 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800/50 transition-colors text-left group"
+            className="chat-item-observer w-full flex items-center p-3 rounded-lg hover:bg-zinc-100 dark:hover:bg-purple-900/30 transition-all text-left group border border-transparent dark:hover:border-purple-500/20"
           >
-            <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mr-4 shrink-0 border border-zinc-200 dark:border-zinc-700 group-hover:border-blue-200 dark:group-hover:border-blue-900 transition-colors overflow-hidden relative">
+            <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-purple-900/20 flex items-center justify-center mr-4 shrink-0 border border-zinc-200 dark:border-purple-500/20 group-hover:border-blue-200 dark:group-hover:border-purple-500/50 transition-colors overflow-hidden relative shadow-[0_0_10px_rgba(0,0,0,0.2)]">
                {getIcon(chat)}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex justify-between items-baseline mb-0.5">
-                  <h3 className="font-medium text-zinc-900 dark:text-zinc-100 truncate pr-2">
+                  <h3 className="font-medium text-zinc-900 dark:text-purple-50 truncate pr-2 group-hover:dark:text-white transition-colors">
                     {chat.title}
                   </h3>
                   {chat.unreadCount > 0 && (
-                      <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
+                      <span className="bg-blue-600 dark:bg-purple-600 dark:shadow-[0_0_8px_rgba(147,51,234,0.6)] text-white text-xs px-2 py-0.5 rounded-full">
                           {chat.unreadCount}
                       </span>
                   )}
               </div>
-              <p className="text-xs text-zinc-500 truncate">
+              <p className="text-xs text-zinc-500 dark:text-purple-400/70 truncate group-hover:dark:text-purple-300 transition-colors">
                   {chat.isChannel ? "Channel" : chat.isGroup ? "Group" : "Private Chat"}
               </p>
             </div>
           </button>
         ))}
         {dialogs.length === 0 && !isLoading && (
-            <div className="text-center py-20 text-zinc-500">No chats found.</div>
+            <div className="text-center py-20 text-zinc-500 dark:text-purple-400/50">No chats found.</div>
         )}
       </div>
     </div>
