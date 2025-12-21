@@ -26,13 +26,19 @@ export default function ChatList() {
   const { selectChat, setSelectedChatTitle, setSelectedChatPhotoUrl, selectedChatId } = useChat();
   const [dialogs, setDialogs] = useState<DialogItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [searchChats, setSearchChats] = useState("");
+
   const observerRef = useRef<IntersectionObserver | null>(null);
+
+  const filteredDialogs = dialogs.filter(dialog =>
+    dialog.title.toLowerCase().includes(searchChats.toLowerCase())
+  );
 
   const fetchDialogs = useCallback(async () => {
     if (!client) return;
     setIsLoading(true);
     try {
-      const result = await client.getDialogs({ limit: 50 }); // Fetch top 50 chats
+      const result = await client.getDialogs({ limit: 150 }); // Fetch top 50 chats
 
       const mappedDialogs: DialogItem[] = result.map(d => {
         let title = d.title || "Unknown";
@@ -146,10 +152,16 @@ export default function ChatList() {
     <div className="w-full max-w-2xl mx-auto p-4">
       <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 dark:text-purple-100 dark:drop-shadow-[0_0_5px_rgba(168,85,247,0.5)]">
         <MessageSquare className="w-6 h-6 dark:text-purple-400" />
-        Chats
+        <input
+          type="text"
+          placeholder="Search channels, groups, or chats..."
+          value={searchChats}
+          className="bg-transparent focus:outline-none w-full placeholder-zinc-500 dark:placeholder-purple-400"
+          onChange={(e) => setSearchChats(e.target.value)}
+        />
       </h2>
       <div className="space-y-1">
-        {dialogs.map((chat, index) => {
+        {filteredDialogs.map((chat, index) => {
           const isActive = chat.id === selectedChatId;
           return (
             <button
