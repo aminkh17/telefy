@@ -8,6 +8,8 @@ interface ChatContextType {
   selectChat: (chatId: string | null) => void;
   selectedChatTitle: string | null;
   setSelectedChatTitle: (title: string | null) => void;
+  selectedChatPhotoUrl: string | null;
+  setSelectedChatPhotoUrl: (url: string | null) => void;
 }
 
 const ChatContext = createContext<ChatContextType>({
@@ -15,6 +17,8 @@ const ChatContext = createContext<ChatContextType>({
   selectChat: () => {},
   selectedChatTitle: null,
   setSelectedChatTitle: () => {},
+  selectedChatPhotoUrl: null,
+  setSelectedChatPhotoUrl: () => {},
 });
 
 export const useChat = () => useContext(ChatContext);
@@ -22,11 +26,13 @@ export const useChat = () => useContext(ChatContext);
 export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [selectedChatTitle, setSelectedChatTitleState] = useState<string | null>(null);
+  const [selectedChatPhotoUrl, setSelectedChatPhotoUrl] = useState<string | null>(null);
 
   const selectChat = useCallback((chatId: string | null) => {
     setSelectedChatId(chatId);
     if (chatId === null) {
         setSelectedChatTitleState(null);
+        setSelectedChatPhotoUrl(null);
     }
   }, []);
 
@@ -35,7 +41,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <ChatContext.Provider value={{ selectedChatId, selectChat, selectedChatTitle, setSelectedChatTitle }}>
+    <ChatContext.Provider value={{ selectedChatId, selectChat, selectedChatTitle, setSelectedChatTitle, selectedChatPhotoUrl, setSelectedChatPhotoUrl }}>
       {children}
     </ChatContext.Provider>
   );

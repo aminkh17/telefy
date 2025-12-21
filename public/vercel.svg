@@ -1,1 +1,2 @@
-<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1155 1000"><path d="m577.3 0 577.4 1000H0z" fill="#fff"/></svg>
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1155 1000"><path transform="matrix(0,1,-1,0,1077.3,-77.3)" d="M 577.3 0 l 577.4 1000 H 0 z" fill="#ffffff"/>
+    <rect transform="matrix(0,1,-1,0,1077.3,-77.3)" x="142" y="168" width="162" height="160" fill="rgb(255, 255, 255)"/></svg>

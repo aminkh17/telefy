@@ -13,11 +13,13 @@ export interface Track {
   url?: string;
   mimeType?: string;
   _message?: Api.Message;
+  imageUrl?: string;
 }
 
 interface PlayerContextType {
   currentTrack: Track | null;
   isPlaying: boolean;
+  isBuffering: boolean;
   progress: number; // 0 to 100
   currentTime: number;
   downloadProgress: number; // 0 to 100
@@ -33,6 +35,7 @@ interface PlayerContextType {
 const PlayerContext = createContext<PlayerContextType>({
   currentTrack: null,
   isPlaying: false,
+  isBuffering: false,
   progress: 0,
   currentTime: 0,
   downloadProgress: 0,
@@ -51,6 +54,7 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
   const { client } = useTelegram();
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [downloadProgress, setDownloadProgress] = useState(0);
@@ -75,9 +79,21 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
         setProgress((audio.currentTime / audio.duration) * 100);
       }
     };
+    
+    const handleWaiting = () => setIsBuffering(true);
+    const handlePlaying = () => {
+        setIsBuffering(false);
+        setIsPlaying(true);
+        updateMediaSessionState();
+    };
+    const handlePause = () => {
+        setIsPlaying(false);
+        updateMediaSessionState();
+    };
 
     const handleEnded = () => {
       setIsPlaying(false);
+      setIsBuffering(false);
       setProgress(0);
       setCurrentTime(0);
       nextTrack();
@@ -85,21 +101,16 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
     
     const handleError = (e: Event) => {
         console.error("Audio playback error:", e);
-        // Don't auto-stop immediately on some errors, maybe retry?
-        // But for now, safe to stop.
         setIsPlaying(false);
-    };
-
-    const handlePlayPause = () => {
-        setIsPlaying(!audio.paused);
-        updateMediaSessionState();
+        setIsBuffering(false);
     };
 
     audio.addEventListener("timeupdate", updateProgress);
     audio.addEventListener("ended", handleEnded);
     audio.addEventListener("error", handleError);
-    audio.addEventListener("play", handlePlayPause);
-    audio.addEventListener("pause", handlePlayPause);
+    audio.addEventListener("waiting", handleWaiting);
+    audio.addEventListener("playing", handlePlaying);
+    audio.addEventListener("pause", handlePause);
 
     // Initialize Media Session actions
     if ('mediaSession' in navigator) {
@@ -126,8 +137,9 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
       audio.removeEventListener("timeupdate", updateProgress);
       audio.removeEventListener("ended", handleEnded);
       audio.removeEventListener("error", handleError);
-      audio.removeEventListener("play", handlePlayPause);
-      audio.removeEventListener("pause", handlePlayPause);
+      audio.removeEventListener("waiting", handleWaiting);
+      audio.removeEventListener("playing", handlePlaying);
+      audio.removeEventListener("pause", handlePause);
       audio.pause();
       if (streamerRef.current) streamerRef.current.cleanup();
     };
@@ -135,7 +147,6 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
 
   const updateMediaSessionState = useCallback(() => {
       if (!currentTrack || !('mediaSession' in navigator)) return;
-      
       navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
   }, [currentTrack, isPlaying]);
 
@@ -146,8 +157,7 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
           title: track.title,
           artist: track.artist,
           artwork: [
-              { src: '/file.svg', sizes: '96x96', type: 'image/svg+xml' }, // Placeholder
-              // We could extract artwork from Telegram audio attributes if available (often not in basic attr)
+              { src: track.imageUrl || '/file.svg', sizes: '96x96', type: 'image/svg+xml' },
           ]
       });
   }, []);
@@ -160,11 +170,6 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
       }
   }, [currentTrack, updateMediaSessionMetadata, updateMediaSessionState]);
 
-
-  // Handle Playback Logic
-  // We don't use the simple useEffect([currentTrack]) anymore for setting src directly if using streamer.
-  // Instead, playTrack initiates the streamer.
-
   // Handle volume changes
   useEffect(() => {
       if (audioRef.current) {
@@ -173,39 +178,39 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
   }, [volume]);
 
   const playTrack = useCallback(async (track: Track, newQueue?: Track[]) => {
-    const isSameTrack = currentTrack?.id === track.id;
-
+    // Immediate state updates for UI responsiveness
     if (newQueue) setQueue(newQueue);
-    setCurrentTrack(track);
-
+    
+    const isSameTrack = currentTrack?.id === track.id;
     const audio = audioRef.current;
-    if (!audio) return;
-
-    if (isSameTrack && audio.src) {
-        // Toggle play if same track and already loaded
+    
+    if (isSameTrack && audio && audio.src) {
         if (audio.paused) {
-            audio.play().catch(console.error);
+            audio.play().catch(e => {
+                if (e.name !== 'AbortError') console.error(e);
+            });
         } else {
             audio.pause();
         }
-    } else {
-        // New track or restart
-        setDownloadProgress(0); // Reset progress
+        return;
+    }
 
-        // Use Streamer if we have a message reference and it's not a direct URL yet
-        // (Or even if it has a URL, if we want to enforce our streamer logic, but usually URL means direct play)
-        
+    setCurrentTrack(track);
+    setDownloadProgress(0);
+    setIsBuffering(true);
+    setIsPlaying(false); // Validating state
+
+    if (!audio) return;
+    
+    try {
         if (track.url) {
-            // Direct URL (e.g. Blob URL already created or external)
-             // Clean up previous streamer usage if any
+            // Direct URL
             if (streamerRef.current) streamerRef.current.cleanup();
             
             audio.src = track.url;
             audio.currentTime = 0;
-            try {
-                await audio.play();
-                setDownloadProgress(100);
-            } catch(e) { console.error(e); }
+            await audio.play();
+            setDownloadProgress(100);
         } else if (track._message && client) {
             // Stream from Telegram
             if (streamerRef.current) {
@@ -213,7 +218,14 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
             }
         } else {
             console.error("Cannot play track: No URL and no Message/Client found");
+            setIsBuffering(false);
         }
+    } catch (e: any) {
+        // Ignore AbortError from rapid switching
+        if (e.name !== 'AbortError') {
+            console.error("Play error:", e);
+        }
+        setIsBuffering(false);
     }
   }, [currentTrack, client]);
 
@@ -237,18 +249,6 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
   
   const nextTrack = useCallback(() => {
-      // Need latest state of currentTrack and queue
-      // We can't access state directly in callback easily without refs or dependency injection, 
-      // but simpler: use functional update or dependency.
-      // We need to trigger playTrack with the next track.
-      
-      // Since queue and currentTrack are dependencies, this function recreates. 
-      // Ensure we don't create infinite loops if used in effects.
-      
-      // We need to access the LATEST queue/currentTrack.
-      // State in closure might be stale if not careful? 
-      // With proper dependencies [currentTrack, queue], it's fine.
-      
       if (!currentTrack || queue.length === 0) return;
       
       const currentIndex = queue.findIndex(t => t.id === currentTrack.id);
@@ -272,7 +272,7 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
   }, [currentTrack, queue, playTrack, seek]);
 
   return (
-    <PlayerContext.Provider value={{ currentTrack, isPlaying, progress, currentTime, downloadProgress, volume, playTrack, togglePlay, seek, setVolume, nextTrack, prevTrack }}>
+    <PlayerContext.Provider value={{ currentTrack, isPlaying, isBuffering, progress, currentTime, downloadProgress, volume, playTrack, togglePlay, seek, setVolume, nextTrack, prevTrack }}>
       {children}
     </PlayerContext.Provider>
   );

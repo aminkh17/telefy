@@ -2,7 +2,7 @@
 
 import React from "react";
 import { usePlayer } from "../contexts/PlayerContext";
-import { Play, Pause, SkipBack, SkipForward, Volume2, Volume1, VolumeX } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Volume2, Volume1, VolumeX, Music } from "lucide-react";
 
 export default function Player() {
   const { currentTrack, isPlaying, togglePlay, progress, currentTime, downloadProgress, seek, nextTrack, prevTrack, volume, setVolume } = usePlayer();
@@ -23,9 +23,19 @@ export default function Player() {
       <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-4 md:gap-8">
         
         {/* Track Info */}
-        <div className="flex-1 w-full md:w-1/4 text-center md:text-left min-w-0">
-          <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">{currentTrack.title}</h3>
-          <p className="text-sm text-zinc-500 truncate">{currentTrack.artist}</p>
+        <div className="flex-1 w-full md:w-1/4 flex items-center gap-4 min-w-0">
+          <div className="w-12 h-12 bg-zinc-200 dark:bg-zinc-800 rounded-md shrink-0 overflow-hidden flex items-center justify-center">
+             {currentTrack.imageUrl ? (
+                 // eslint-disable-next-line @next/next/no-img-element
+                 <img src={currentTrack.imageUrl} alt={currentTrack.title} className="w-full h-full object-cover" />
+             ) : (
+                 <Music className="w-6 h-6 text-zinc-400" />
+             )}
+          </div>
+          <div className="min-w-0 flex-1">
+              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">{currentTrack.title}</h3>
+              <p className="text-sm text-zinc-500 truncate">{currentTrack.artist}</p>
+          </div>
         </div>
 
         {/* Controls */}

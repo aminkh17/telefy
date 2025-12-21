@@ -5,13 +5,13 @@ import { useTelegram } from "../contexts/TelegramProvider";
 import { usePlayer, Track } from "../contexts/PlayerContext";
 import { useChat } from "../contexts/ChatProvider";
 import { Api } from "telegram";
-import { Play, Pause, Search, ArrowLeft } from "lucide-react";
+import { Play, Pause, Search, ArrowLeft, Music } from "lucide-react";
 import bigInt from "big-integer";
 
 export default function ChatMusicView() {
   const { client } = useTelegram();
   const { playTrack, currentTrack, isPlaying } = usePlayer();
-  const { selectedChatId, selectChat, selectedChatTitle } = useChat();
+  const { selectedChatId, selectChat, selectedChatTitle, selectedChatPhotoUrl } = useChat();
   
   const [tracks, setTracks] = useState<Track[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -80,6 +80,9 @@ export default function ChatMusicView() {
                          const filenameAttr = attributes.find((a): a is Api.DocumentAttributeFilename => a instanceof Api.DocumentAttributeFilename);
                          const filename = filenameAttr?.fileName || "audio.mp3";
                          
+                         // Try to get thumbnail asynchronously
+                         let imageUrl: string | undefined = undefined;
+                         
                          newTracks.push({
                              id: msg.id.toString(),
                              title: title || filename,
@@ -87,14 +90,49 @@ export default function ChatMusicView() {
                              duration,
                              url: "", // No pre-downloaded URL
                              mimeType: msg.media.document.mimeType || "audio/mpeg",
-                             _message: msg, 
+                             _message: msg,
+                             imageUrl 
                          });
                      }
                  }
             }
         }
         
+        // Asynchronously fetch thumbnails for new tracks
+        // We do this after setting tracks to avoid blocking UI, then update state
+        const tracksWithImages = [...newTracks];
+        
         setTracks(prev => reset ? newTracks : [...prev, ...newTracks]);
+        
+        // Fetch thumbnails in background
+        Promise.all(tracksWithImages.map(async (track) => {
+             if (track._message && track._message.media && track._message.media instanceof Api.MessageMediaDocument && track._message.media.document instanceof Api.Document) {
+                 if (track._message.media.document.thumbs && track._message.media.document.thumbs.length > 0) {
+                     try {
+                        const thumbData = await client.downloadMedia(track._message, { thumb: 0 }); // Get smallest thumb
+                        if (thumbData && thumbData.length > 0) {
+                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                             const blob = new Blob([thumbData as any], { type: "image/jpeg" });
+                             const url = URL.createObjectURL(blob);
+                             return { ...track, imageUrl: url };
+                        }
+                     } catch(e) { console.error("Thumb fetch error", e); }
+                 }
+             }
+             return track;
+        })).then(updatedTracks => {
+             // Only update if we actually got new images
+             if (updatedTracks.some((t, i) => t.imageUrl !== tracksWithImages[i].imageUrl)) {
+                  setTracks(prev => {
+                      const updatedIds = new Set(updatedTracks.map(t => t.id));
+                      return prev.map(t => {
+                          const updated = updatedTracks.find(u => u.id === t.id);
+                          return updated || t;
+                      });
+                  });
+             }
+        });
+
     } catch (e) {
         console.error("Failed to fetch music from chat", e);
         setHasMore(false);
@@ -125,9 +163,21 @@ export default function ChatMusicView() {
             >
                 <ArrowLeft className="w-6 h-6" />
             </button>
-            <div className="flex-1 overflow-hidden">
-                <h1 className="text-xl font-bold truncate">{selectedChatTitle || "Chat Music"}</h1>
-                <p className="text-sm text-zinc-500">{tracks.length} tracks found</p>
+            <div className="flex items-center gap-4 flex-1 overflow-hidden">
+                 {/* Chat Photo */}
+                 <div className="w-10 h-10 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0">
+                    {selectedChatPhotoUrl ? (
+                         // eslint-disable-next-line @next/next/no-img-element
+                        <img src={selectedChatPhotoUrl} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                        <Music className="w-5 h-5 text-zinc-500" />
+                    )}
+                 </div>
+
+                <div className="flex-1 overflow-hidden">
+                    <h1 className="text-xl font-bold truncate">{selectedChatTitle || "Chat Music"}</h1>
+                    <p className="text-sm text-zinc-500">{tracks.length} tracks found</p>
+                </div>
             </div>
         </div>
 
@@ -155,13 +205,24 @@ export default function ChatMusicView() {
                             ${isCurrent ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-zinc-50 dark:hover:bg-zinc-900'}
                         `}
                     >
-                        <div className="w-10 h-10 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center mr-4 shrink-0">
-                            {isPlayingCurrent ? (
-                                <Pause className="w-4 h-4 text-blue-600 dark:text-blue-400 fill-current" />
+                        <div className="w-12 h-12 rounded-md bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center mr-4 shrink-0 overflow-hidden relative">
+                            {track.imageUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={track.imageUrl} alt="" className="w-full h-full object-cover" />
                             ) : (
-                                <Play className="w-4 h-4 text-zinc-500 group-hover:text-blue-600 dark:text-zinc-400 ml-0.5 fill-current" />
+                                <Music className="w-5 h-5 text-zinc-400" />
                             )}
+                            
+                            {/* Overlay Play/Pause on hover or active */}
+                            <div className={`absolute inset-0 bg-black/20 flex items-center justify-center transition-opacity ${isCurrent ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                                {isPlayingCurrent ? (
+                                    <Pause className="w-5 h-5 text-white fill-current" />
+                                ) : (
+                                    <Play className="w-5 h-5 text-white fill-current" />
+                                )}
+                            </div>
                         </div>
+                        
                         <div className="flex-1 min-w-0">
                             <h3 className={`font-medium truncate ${isCurrent ? 'text-blue-600 dark:text-blue-400' : 'text-zinc-900 dark:text-zinc-100'}`}>
                                 {track.title}

@@ -6,8 +6,15 @@ This is a Next.js application that acts as a specialized Telegram client for mus
 
 - **Telegram Login:** Securely log in with your existing Telegram account.
 - **Music Only:** Automatically filters your chats to show only audio files.
-- **Player:** Built-in audio player with persistent controls.
+- **Player:** Built-in audio player with persistent controls, scrubbing, and volume.
+- **Streaming:** Custom MSE-based audio engine for instant playback without full downloads.
+- **Offline Support:** Caches played tracks for offline listening.
 - **Search:** Quickly find tracks by title or artist.
+
+## Documentation
+
+- [**System Architecture**](docs/ARCHITECTURE.md): Components, State Management, and Providers.
+- [**Audio System**](docs/AUDIO_SYSTEM.md): Deep dive into the streaming engine, MSE, and caching.
 
 ## Setup
 
@@ -42,3 +49,4 @@ This is a Next.js application that acts as a specialized Telegram client for mus
 - Tailwind CSS
 - GramJS (Telegram Client)
 - Lucide React (Icons)
+- IndexedDB (Caching)

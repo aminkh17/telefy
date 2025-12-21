@@ -11,12 +11,15 @@ export class AudioStreamer {
   private abortController: AbortController | null = null;
   private mimeType = 'audio/mpeg';
   private onProgress?: (progress: number) => void;
+  private syncInterval: NodeJS.Timeout | null = null;
+  private isDownloadComplete = false;
 
   constructor(private audioElement: HTMLAudioElement, onProgress?: (progress: number) => void) {
       this.onProgress = onProgress;
   }
 
   cleanup() {
+    this.isDownloadComplete = false;
     if (this.abortController) {
       this.abortController.abort();
       this.abortController = null;
@@ -27,6 +30,10 @@ export class AudioStreamer {
         } catch (e) {
             // ignore
         }
+    }
+    if (this.syncInterval) {
+        clearInterval(this.syncInterval);
+        this.syncInterval = null;
     }
     // Revoke object URL to free memory
     if (this.audioElement.src.startsWith('blob:')) {
@@ -43,6 +50,9 @@ export class AudioStreamer {
   async play(client: TelegramClient, track: any, message: Api.Message) {
     this.cleanup();
     console.log(`Starting playback for: ${track.title}`);
+    
+    // Start Sync Check
+    this.startSyncCheck();
 
     // 1. Check offline DB
     try {
@@ -77,7 +87,6 @@ export class AudioStreamer {
 
     this.mediaSource.addEventListener('sourceopen', async () => {
         if (!this.mediaSource) return;
-        console.log("MediaSource opened");
         
         try {
              this.sourceBuffer = this.mediaSource.addSourceBuffer(this.mimeType);
@@ -91,7 +100,12 @@ export class AudioStreamer {
              });
              
              // Start playing immediately (will buffer)
-             this.audioElement.play().catch(e => console.error("Play error:", e));
+             this.audioElement.play().catch(e => {
+                 // Ignore new load request interruptions
+                 if (e.name !== 'AbortError') {
+                     console.error("Play error:", e);
+                 }
+             });
              
              await this.streamDownload(client, track, message, signal);
         } catch (e) {
@@ -100,6 +114,21 @@ export class AudioStreamer {
              this.fallbackDownloadAndPlay(client, track, message);
         }
     }, { once: true });
+  }
+
+  private startSyncCheck() {
+      if (this.syncInterval) clearInterval(this.syncInterval);
+      
+      this.syncInterval = setInterval(() => {
+          if (!this.audioElement || this.audioElement.paused) return;
+          
+          // Monitor buffer health
+          if (this.audioElement.readyState >= 2) {
+             // We can check buffered ranges vs currentTime
+             // const buffered = this.audioElement.buffered;
+             // Logic to check if we are close to stalling could go here
+          }
+      }, 1000);
   }
 
   private async streamDownload(client: TelegramClient, track: any, message: Api.Message, signal: AbortSignal) {
@@ -115,6 +144,7 @@ export class AudioStreamer {
               if (signal.aborted) return;
               
               const buffer = chunk as Buffer;
+              console.log(`Chunk received: ${buffer.length} bytes`);
               
               // Append to MSE
               // buffer is Uint8Array (Buffer), which is a valid BufferSource
@@ -132,16 +162,11 @@ export class AudioStreamer {
 
           if (signal.aborted) return;
           console.log("Download complete.");
+          this.isDownloadComplete = true;
 
           // Finished
-          if (this.mediaSource && this.mediaSource.readyState === 'open') {
-              // Wait for queue to empty before ending stream? 
-              // We'll let processQueue handle EOS if queue is empty and we are done?
-              // Or explicitly call endOfStream here if queue is empty.
-              if (this.queue.length === 0 && !this.isAppending) {
-                   try { this.mediaSource.endOfStream(); } catch(e) {}
-              }
-          }
+          // Try to close stream if we are not busy
+          this.processQueue();
 
           // Save to DB
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -176,10 +201,13 @@ export class AudioStreamer {
               this.isAppending = false;
           }
       } else {
-          // Queue empty. If we finished downloading, we might want to close stream?
-          // But we don't know here easily if download is done without extra state.
-          // For now, relies on streamDownload to close it, or close it if needed.
-          // Check if download loop finished? 
+          // Queue empty.
+          if (this.isDownloadComplete && this.mediaSource && this.mediaSource.readyState === 'open') {
+               try {
+                   console.log("Ending MediaSource stream");
+                   this.mediaSource.endOfStream();
+               } catch(e) { console.error("endOfStream error", e); }
+          }
       }
   }
 

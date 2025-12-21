@@ -42,8 +42,15 @@ export const initDB = async () => {
 
 export const saveFullTrack = async (track: any, blob: Blob) => {
   const db = await initDB();
+  // Extract only serializable fields to avoid DataCloneError
+  const { id, title, artist, duration, mimeType } = track;
+  
   await db.put('tracks', {
-    ...track,
+    id,
+    title,
+    artist,
+    duration,
+    mimeType,
     blob,
     savedAt: Date.now(),
   });

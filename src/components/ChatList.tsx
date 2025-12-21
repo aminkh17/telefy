@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useTelegram } from "../contexts/TelegramProvider";
 import { useChat } from "../contexts/ChatProvider";
 import { MessageSquare, Users, User, Megaphone } from "lucide-react";
+import { Api } from "telegram";
 
 // Helper type for dialogs since gram.js types can be tricky
 interface DialogItem {
@@ -14,13 +15,17 @@ interface DialogItem {
   isUser: boolean;
   unreadCount: number;
   date: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  entity?: any; // Store entity for photo downloading
+  photoUrl?: string;
 }
 
 export default function ChatList() {
   const { client } = useTelegram();
-  const { selectChat, setSelectedChatTitle } = useChat();
+  const { selectChat, setSelectedChatTitle, setSelectedChatPhotoUrl } = useChat();
   const [dialogs, setDialogs] = useState<DialogItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
   const fetchDialogs = useCallback(async () => {
     if (!client) return;
@@ -47,6 +52,7 @@ export default function ChatList() {
           isUser: d.isUser,
           unreadCount: d.unreadCount,
           date: d.date,
+          entity: d.entity,
         };
       });
       setDialogs(mappedDialogs);
@@ -63,12 +69,57 @@ export default function ChatList() {
     }
   }, [client, fetchDialogs]);
 
+  // Lazy load photos logic
+  useEffect(() => {
+    if (!client || dialogs.length === 0) return;
+
+    observerRef.current = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const index = Number(entry.target.getAttribute('data-index'));
+                const dialog = dialogs[index];
+                
+                if (dialog && !dialog.photoUrl && dialog.entity) {
+                    // Stop observing this element immediately
+                    observerRef.current?.unobserve(entry.target);
+                    
+                    // Fetch photo
+                    client.downloadProfilePhoto(dialog.entity, { isBig: true }).then((buffer) => {
+                         if (buffer && buffer.length > 0) {
+                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                             const blob = new Blob([buffer as any], { type: "image/jpeg" });
+                             const url = URL.createObjectURL(blob);
+                             
+                             setDialogs(prev => prev.map((d, i) => i === index ? { ...d, photoUrl: url } : d));
+                         }
+                    }).catch(err => console.error("Failed to load photo", err));
+                }
+            }
+        });
+    }, { rootMargin: "50px" });
+
+    // Observe all chat items
+    const elements = document.querySelectorAll('.chat-item-observer');
+    elements.forEach(el => observerRef.current?.observe(el));
+
+    return () => {
+        if (observerRef.current) {
+            observerRef.current.disconnect();
+        }
+    };
+  }, [client, dialogs]); // Re-run when dialogs (initially) load
+
   const handleChatClick = (chat: DialogItem) => {
       setSelectedChatTitle(chat.title);
+      setSelectedChatPhotoUrl(chat.photoUrl || null);
       selectChat(chat.id);
   };
 
   const getIcon = (chat: DialogItem) => {
+      if (chat.photoUrl) {
+           // eslint-disable-next-line @next/next/no-img-element
+           return <img src={chat.photoUrl} alt="" className="w-full h-full object-cover" />;
+      }
       if (chat.isChannel) return <Megaphone className="w-5 h-5 text-zinc-500" />;
       if (chat.isGroup) return <Users className="w-5 h-5 text-zinc-500" />;
       return <User className="w-5 h-5 text-zinc-500" />;
@@ -97,13 +148,14 @@ export default function ChatList() {
           Chats
       </h2>
       <div className="space-y-1">
-        {dialogs.map((chat) => (
+        {dialogs.map((chat, index) => (
           <button
             key={chat.id.toString()}
             onClick={() => handleChatClick(chat)}
-            className="w-full flex items-center p-3 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800/50 transition-colors text-left group"
+            data-index={index}
+            className="chat-item-observer w-full flex items-center p-3 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800/50 transition-colors text-left group"
           >
-            <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mr-4 shrink-0 border border-zinc-200 dark:border-zinc-700 group-hover:border-blue-200 dark:group-hover:border-blue-900 transition-colors">
+            <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mr-4 shrink-0 border border-zinc-200 dark:border-zinc-700 group-hover:border-blue-200 dark:group-hover:border-blue-900 transition-colors overflow-hidden relative">
                {getIcon(chat)}
             </div>
             <div className="flex-1 min-w-0">
