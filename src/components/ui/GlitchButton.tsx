@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useRef } from "react";
 import { twMerge } from "tailwind-merge";
-import { GlitchButton as _GlitchButton } from "@/components/ui/bubble-background";
 
 interface GlitchButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -70,117 +69,109 @@ export const GlitchButton: React.FC<GlitchButtonProps> = ({
   );
 
   return (
-    <_GlitchButton
-      glitchOnHover={true}
-      glitchAlways={false}
-      glitchColors.primary="#ef00ef"
-      glitchColors.secondary="#00ffff"
-      borderColor="white">
-      {children}
-    </_GlitchButton>
-    // <button
-    //   ref={buttonRef}
-    //   onClick={handleClick}
-    //   onMouseEnter={handleMouseEnter}
-    //   onMouseLeave={handleMouseLeave}
-    //   className={containerClasses}
-    //   style={borderStyle}
-    //   {...props}
-    // >
-    //   <span
-    //     className={`
-    //     block
-    //     ${showGlitch ? "opacity-0" : "opacity-100"} 
-    //     transition-opacity
-    //     ${glitchAlways ? "flicker-animation" : ""}
-    //   `}
-    //   >
-    //     {children}
-    //   </span>
+    <button
+      ref={buttonRef}
+      onClick={handleClick}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      className={containerClasses}
+      style={borderStyle}
+      {...props}
+    >
+      <span
+        className={`
+        block
+        ${showGlitch ? "opacity-0" : "opacity-100"} 
+        transition-opacity
+        ${glitchAlways ? "flicker-animation" : ""}
+      `}
+      >
+        {children}
+      </span>
 
-    //   {showGlitch && (
-    //     <div
-    //       className={`
-    //       absolute inset-0 
-    //       overflow-hidden 
-    //       ${isClicked ? "glitch-skew" : ""}
-    //     `}
-    //     >
-    //       <div
-    //         className={`
-    //         absolute left-0 w-full h-1/3 top-0 
-    //         ${bgColorClass}
-    //         ${isRounded ? "rounded-t-lg" : ""}
-    //         overflow-hidden
-    //         glitch-layer-1
-    //       `}
-    //         style={{
-    //           boxShadow: `inset ${borderColor} 5px 5px 0px, inset ${borderColor} -5px 0px 0px`,
-    //         }}
-    //       >
-    //         <div
-    //           className={`
-    //             absolute w-full ${textColorClass}
-    //             top-0 left-0 right-0
-    //             flex items-center justify-center
-    //             h-full
-    //           `}
-    //           style={textShadowStyle}
-    //         >
-    //           <div className="transform translate-y-0 mt-[45px]">
-    //             {children}
-    //           </div>
-    //         </div>
-    //       </div>
-    //       <div
-    //         className={`
-    //         absolute left-0 w-full h-1/3 top-1/3 
-    //         ${bgColorClass}
-    //         overflow-hidden
-    //         glitch-layer-2
-    //       `}
-    //         style={{
-    //           boxShadow: `inset ${borderColor} 5px 0px 0px, inset ${borderColor} -5px 0px 0px`,
-    //         }}
-    //       >
-    //         <div
-    //           className={`
-    //             absolute w-full ${textColorClass}
-    //             top-0 left-0 right-0
-    //             flex items-center justify-center
-    //             h-[300%] -translate-y-1/3
-    //           `}
-    //           style={textShadowStyle}
-    //         >
-    //           <div>{children}</div>
-    //         </div>
-    //       </div>
-    //       <div
-    //         className={`
-    //         absolute left-0 w-full h-1/3 top-2/3 
-    //         ${bgColorClass}
-    //         ${isRounded ? "rounded-b-lg" : ""}
-    //         overflow-hidden
-    //         glitch-layer-3
-    //       `}
-    //         style={{
-    //           boxShadow: `inset ${borderColor} 5px -5px 0px, inset ${borderColor} -5px 0px 0px`,
-    //         }}
-    //       >
-    //         <div
-    //           className={`
-    //             absolute w-full ${textColorClass}
-    //             top-0 left-0 right-0
-    //             flex items-center justify-center
-    //             h-[300%] -translate-y-2/3
-    //           `}
-    //           style={textShadowStyle}
-    //         >
-    //           <div>{children}</div>
-    //         </div>
-    //       </div>
-    //     </div>
-    //   )}
-    // </button>
+      {showGlitch && (
+        <div
+          className={`
+          absolute inset-0 
+          overflow-hidden 
+          ${isClicked ? "glitch-skew" : ""}
+        `}
+        >
+          <div
+            className={`
+            absolute left-0 w-full h-1/3 top-0 
+            ${bgColorClass}
+            ${isRounded ? "rounded-t-lg" : ""}
+            overflow-hidden
+            glitch-layer-1
+          `}
+            style={{
+              boxShadow: `inset ${borderColor} 5px 5px 0px, inset ${borderColor} -5px 0px 0px`,
+            }}
+          >
+            <div
+              className={`
+                absolute w-full ${textColorClass}
+                top-0 left-0 right-0
+                flex items-center justify-center
+                h-full
+              `}
+              style={textShadowStyle}
+            >
+              <div className="transform translate-y-0 mt-[45px]">
+                {children}
+              </div>
+            </div>
+          </div>
+          <div
+            className={`
+            absolute left-0 w-full h-1/3 top-1/3 
+            ${bgColorClass}
+            overflow-hidden
+            glitch-layer-2
+          `}
+            style={{
+              boxShadow: `inset ${borderColor} 5px 0px 0px, inset ${borderColor} -5px 0px 0px`,
+            }}
+          >
+            <div
+              className={`
+                absolute w-full ${textColorClass}
+                top-0 left-0 right-0
+                flex items-center justify-center
+                h-[300%] -translate-y-1/3
+              `}
+              style={textShadowStyle}
+            >
+              <div>{children}</div>
+            </div>
+          </div>
+          <div
+            className={`
+            absolute left-0 w-full h-1/3 top-2/3 
+            ${bgColorClass}
+            ${isRounded ? "rounded-b-lg" : ""}
+            overflow-hidden
+            glitch-layer-3
+          `}
+            style={{
+              boxShadow: `inset ${borderColor} 5px -5px 0px, inset ${borderColor} -5px 0px 0px`,
+            }}
+          >
+            <div
+              className={`
+                absolute w-full ${textColorClass}
+                top-0 left-0 right-0
+                flex items-center justify-center
+                h-[300%] -translate-y-2/3
+              `}
+              style={textShadowStyle}
+            >
+              <div>{children}</div>
+            </div>
+          </div>
+        </div>
+      )}
+    </button>
   );
 };
