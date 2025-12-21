@@ -6,7 +6,7 @@ import { Api } from "telegram";
 import { CyberpunkCard } from "@/components/ui/cyberpunk-card";
 
 export default function Auth() {
-  const { client, user } = useTelegram();
+  const { client, user, apiId, apiHash } = useTelegram();
   const [phoneNumber, setPhoneNumber] = useState("");
   const [phoneCode, setPhoneCode] = useState("");
   const [password, setPassword] = useState("");
@@ -23,8 +23,8 @@ export default function Auth() {
     try {
       const result = await client.invoke(
         new Api.auth.SendCode({
-          apiId: parseInt(process.env.TELEGRAM_API_ID || "0"),
-          apiHash: process.env.TELEGRAM_API_HASH || "",
+          apiId: apiId || 0,
+          apiHash: apiHash || "",
           phoneNumber: phoneNumber,
           settings: new Api.CodeSettings({
             allowFlashcall: false,
@@ -81,12 +81,9 @@ export default function Auth() {
   };
 
   const handlePasswordSignIn = async () => {
-    if (!client) return;
+    if (!client || apiId === null || apiHash === null) return;
     setIsLoading(true);
     setError("");
-
-    const apiId = parseInt(process.env.TELEGRAM_API_ID || "0");
-    const apiHash = process.env.TELEGRAM_API_HASH || "";
 
     try {
       // Use signInWithPassword helper which handles SRP calculation

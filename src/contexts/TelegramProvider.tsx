@@ -11,6 +11,8 @@ interface TelegramContextType {
   user: Api.User | null;
   sessionString: string | null;
   isLoading: boolean;
+  apiId: number | null;
+  apiHash: string | null;
   connect: () => Promise<void>;
   logOut: () => Promise<void>;
 }
@@ -21,6 +23,8 @@ const TelegramContext = createContext<TelegramContextType>({
   user: null,
   sessionString: null,
   isLoading: true,
+  apiId: null,
+  apiHash: null,
   connect: async () => {},
   logOut: async () => {},
 });
@@ -32,6 +36,8 @@ export const TelegramProvider = ({ children }: { children: React.ReactNode }) =>
   const [isConnected, setIsConnected] = useState(false);
   const [user, setUser] = useState<Api.User | null>(null);
   const [sessionString, setSessionString] = useState<string | null>(null);
+  const [apiId, setApiId] = useState<number | null>(null);
+  const [apiHash, setApiHash] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -46,19 +52,10 @@ export const TelegramProvider = ({ children }: { children: React.ReactNode }) =>
 
   useEffect(() => {
     const initClient = async () => {
-        if (sessionString === null) return; // Wait for local storage load
-
-        const apiId = process.env.TELEGRAM_API_ID;
-        const apiHash = process.env.TELEGRAM_API_HASH;
-
-        if (!apiId || !apiHash) {
-          console.error("Missing API_ID or API_HASH");
-          setIsLoading(false);
-          return;
-        }
+        if (sessionString === null || apiId === null || apiHash === null) return; // Wait for local storage load and config fetch
 
         const session = new StringSession(sessionString || "");
-        const newClient = new TelegramClient(session, parseInt(apiId), apiHash, {
+        const newClient = new TelegramClient(session, apiId, apiHash, {
           connectionRetries: 5,
         });
 
@@ -82,7 +79,7 @@ export const TelegramProvider = ({ children }: { children: React.ReactNode }) =>
     };
 
     initClient();
-  }, [sessionString]); 
+  }, [sessionString, apiId, apiHash]); 
 
   const logOut = async () => {
       if (client) {
@@ -107,7 +104,7 @@ export const TelegramProvider = ({ children }: { children: React.ReactNode }) =>
 
 
   return (
-    <TelegramContext.Provider value={{ client, isConnected, user, sessionString, isLoading, connect, logOut }}>
+    <TelegramContext.Provider value={{ client, isConnected, user, sessionString, isLoading, apiId, apiHash, connect, logOut }}>
       {children}
     </TelegramContext.Provider>
   );
