@@ -33,12 +33,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white dark:bg-shiny-cyber text-zinc-900 dark:text-purple-50 min-h-screen`}
       >
         <ThemeProvider>
-            <div className="fixed inset-0 z-0 pointer-events-none">
+            <div className="fixed inset-0 z-0">
                 <BubbleBackground 
-                    backgroundColor="transparent" 
-                    bubbleCount={20} 
-                    bubbleColors={["#9333ea", "#c026d3", "#2563eb"]} // purple, pink, blue
-                    mouseInteraction={true}
+                    bgColorA="rgb(108, 0, 162)"
+                    bgColorB="rgb(0, 17, 82)"
+                    blendMode="hard-light"
                 />
             </div>
             <div className="relative z-10 min-h-screen">

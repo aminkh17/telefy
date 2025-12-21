@@ -24,7 +24,11 @@ export default function Home() {
         </div>
         {user && (
            <div className="flex items-center gap-4">
-               <GlitchButton className="text-sm px-4 py-2 h-auto">
+               <GlitchButton 
+                   glitchOnHover={true} 
+                   glitchColors={{ primary: "#9333ea", secondary: "#00f0ff" }}
+                   className="text-sm px-3 py-1 bg-purple-900/40 border-purple-500/50 rounded-md"
+               >
                    {user.firstName}
                </GlitchButton>
                {/* Logout is handled in context but we could add a button here later */}

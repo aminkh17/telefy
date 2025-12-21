@@ -160,10 +160,12 @@ export default function ChatList() {
             >
                 {isActive && (
                     <MorphingBlob 
-                        className="absolute inset-0 w-full h-full -z-10 opacity-50" 
-                        size="w-full h-full" 
-                        backgroundColor="bg-purple-600" 
-                        withBlur={true}
+                        className="absolute inset-0 w-full h-full -z-10 opacity-60 backdrop-blur-sm" 
+                        size="100%" 
+                        theme="aurora"
+                        complexity={0.5}
+                        speed={0.2}
+                        enableEffects={false}
                     />
                 )}
                 
