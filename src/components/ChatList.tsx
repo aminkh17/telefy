@@ -5,6 +5,7 @@ import { useTelegram } from "../contexts/TelegramProvider";
 import { useChat } from "../contexts/ChatProvider";
 import { MessageSquare, Users, User, Megaphone } from "lucide-react";
 import { Api } from "telegram";
+import { MorphingBlob } from "./ui/MorphingBlob";
 
 // Helper type for dialogs since gram.js types can be tricky
 interface DialogItem {
@@ -22,7 +23,7 @@ interface DialogItem {
 
 export default function ChatList() {
   const { client } = useTelegram();
-  const { selectChat, setSelectedChatTitle, setSelectedChatPhotoUrl } = useChat();
+  const { selectChat, setSelectedChatTitle, setSelectedChatPhotoUrl, selectedChatId } = useChat();
   const [dialogs, setDialogs] = useState<DialogItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -148,33 +149,45 @@ export default function ChatList() {
           Chats
       </h2>
       <div className="space-y-1">
-        {dialogs.map((chat, index) => (
-          <button
-            key={chat.id.toString()}
-            onClick={() => handleChatClick(chat)}
-            data-index={index}
-            className="chat-item-observer w-full flex items-center p-3 rounded-lg hover:bg-zinc-100 dark:hover:bg-purple-900/30 transition-all text-left group border border-transparent dark:hover:border-purple-500/20"
-          >
-            <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-purple-900/20 flex items-center justify-center mr-4 shrink-0 border border-zinc-200 dark:border-purple-500/20 group-hover:border-blue-200 dark:group-hover:border-purple-500/50 transition-colors overflow-hidden relative shadow-[0_0_10px_rgba(0,0,0,0.2)]">
-               {getIcon(chat)}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex justify-between items-baseline mb-0.5">
-                  <h3 className="font-medium text-zinc-900 dark:text-purple-50 truncate pr-2 group-hover:dark:text-white transition-colors">
-                    {chat.title}
-                  </h3>
-                  {chat.unreadCount > 0 && (
-                      <span className="bg-blue-600 dark:bg-purple-600 dark:shadow-[0_0_8px_rgba(147,51,234,0.6)] text-white text-xs px-2 py-0.5 rounded-full">
-                          {chat.unreadCount}
-                      </span>
-                  )}
-              </div>
-              <p className="text-xs text-zinc-500 dark:text-purple-400/70 truncate group-hover:dark:text-purple-300 transition-colors">
-                  {chat.isChannel ? "Channel" : chat.isGroup ? "Group" : "Private Chat"}
-              </p>
-            </div>
-          </button>
-        ))}
+        {dialogs.map((chat, index) => {
+          const isActive = chat.id === selectedChatId;
+          return (
+            <button
+                key={chat.id.toString()}
+                onClick={() => handleChatClick(chat)}
+                data-index={index}
+                className="chat-item-observer w-full flex items-center p-3 rounded-lg hover:bg-zinc-100 dark:hover:bg-purple-900/30 transition-all text-left group border border-transparent dark:hover:border-purple-500/20 relative overflow-hidden"
+            >
+                {isActive && (
+                    <MorphingBlob 
+                        className="absolute inset-0 w-full h-full -z-10 opacity-50" 
+                        size="w-full h-full" 
+                        backgroundColor="bg-purple-600" 
+                        withBlur={true}
+                    />
+                )}
+                
+                <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-purple-900/20 flex items-center justify-center mr-4 shrink-0 border border-zinc-200 dark:border-purple-500/20 group-hover:border-blue-200 dark:group-hover:border-purple-500/50 transition-colors overflow-hidden relative shadow-[0_0_10px_rgba(0,0,0,0.2)]">
+                {getIcon(chat)}
+                </div>
+                <div className="flex-1 min-w-0 relative z-10">
+                <div className="flex justify-between items-baseline mb-0.5">
+                    <h3 className={`font-medium truncate pr-2 transition-colors ${isActive ? 'text-white drop-shadow-md' : 'text-zinc-900 dark:text-purple-50 group-hover:dark:text-white'}`}>
+                        {chat.title}
+                    </h3>
+                    {chat.unreadCount > 0 && (
+                        <span className="bg-blue-600 dark:bg-purple-600 dark:shadow-[0_0_8px_rgba(147,51,234,0.6)] text-white text-xs px-2 py-0.5 rounded-full">
+                            {chat.unreadCount}
+                        </span>
+                    )}
+                </div>
+                <p className={`text-xs truncate transition-colors ${isActive ? 'text-purple-100' : 'text-zinc-500 dark:text-purple-400/70 group-hover:dark:text-purple-300'}`}>
+                    {chat.isChannel ? "Channel" : chat.isGroup ? "Group" : "Private Chat"}
+                </p>
+                </div>
+            </button>
+          );
+        })}
         {dialogs.length === 0 && !isLoading && (
             <div className="text-center py-20 text-zinc-500 dark:text-purple-400/50">No chats found.</div>
         )}

@@ -3,6 +3,7 @@
 import React from "react";
 import { usePlayer } from "../contexts/PlayerContext";
 import { Play, Pause, SkipBack, SkipForward, Volume2, Volume1, VolumeX, Music, Shuffle, Repeat, Repeat1, ArrowUpDown } from "lucide-react";
+import { AppleGlassEffect } from "./ui/AppleGlassEffect";
 
 export default function Player() {
   const { 
@@ -23,8 +24,17 @@ export default function Player() {
   const VolumeIcon = volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#0a0311]/90 backdrop-blur-xl border-t border-zinc-200 dark:border-purple-500/20 p-4 shadow-lg shadow-purple-900/10 z-50">
-      <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-4 md:gap-8">
+    <AppleGlassEffect 
+        className="fixed bottom-0 left-0 right-0 z-50 p-4 border-t"
+        blurIntensity="xl"
+        backgroundOpacity={70}
+        backgroundColor="#0a0311"
+        withBorder={false} // Border handled by border-t
+        borderRadius="none"
+        borderColor="rgba(168, 85, 247, 0.2)"
+        style={{ borderTopColor: 'rgba(168, 85, 247, 0.2)' }}
+    >
+      <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-4 md:gap-8 relative z-10">
         
         {/* Track Info */}
         <div className="flex-1 w-full md:w-1/4 flex items-center gap-4 min-w-0">
@@ -148,6 +158,6 @@ export default function Player() {
             </div>
         </div>
       </div>
-    </div>
+    </AppleGlassEffect>
   );
 }

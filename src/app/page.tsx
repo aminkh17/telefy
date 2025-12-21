@@ -7,6 +7,7 @@ import Player from "../components/Player";
 import { useTelegram } from "../contexts/TelegramProvider";
 import { useChat } from "../contexts/ChatProvider";
 import Image from "next/image";
+import { GlitchButton } from "../components/ui/GlitchButton";
 
 export default function Home() {
   const { user, isLoading } = useTelegram();
@@ -23,7 +24,9 @@ export default function Home() {
         </div>
         {user && (
            <div className="flex items-center gap-4">
-               <span className="text-sm text-zinc-500 dark:text-purple-300">Logged in as {user.firstName}</span>
+               <GlitchButton className="text-sm px-4 py-2 h-auto">
+                   {user.firstName}
+               </GlitchButton>
                {/* Logout is handled in context but we could add a button here later */}
            </div>
         )}

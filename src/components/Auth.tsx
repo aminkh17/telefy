@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useTelegram } from "../contexts/TelegramProvider";
 import { Api } from "telegram";
+import { CyberpunkCard } from "./ui/CyberpunkCard";
 
 export default function Auth() {
   const { client, user } = useTelegram();
@@ -112,11 +113,16 @@ export default function Auth() {
   if (user) return null; // Should not render if logged in
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[50vh] w-full max-w-md mx-auto p-6 bg-white dark:bg-zinc-900 rounded-xl shadow-lg border border-zinc-200 dark:border-zinc-800">
-      <h2 className="text-2xl font-bold mb-6 text-zinc-900 dark:text-zinc-100">Telegram Login</h2>
+    <CyberpunkCard 
+        theme="neon-purple"
+        glitchEffect={true}
+        borderStyle="glitch"
+        className="flex flex-col items-center justify-center min-h-[50vh] w-full max-w-md mx-auto p-8"
+    >
+      <h2 className="text-2xl font-bold mb-6 text-white text-center">Telegram Login</h2>
       
       {error && (
-        <div className="w-full mb-4 p-3 text-sm text-red-500 bg-red-50 dark:bg-red-900/20 rounded-md border border-red-200 dark:border-red-800">
+        <div className="w-full mb-4 p-3 text-sm text-red-200 bg-red-900/50 rounded-md border border-red-500/50">
           {error}
         </div>
       )}
@@ -124,19 +130,19 @@ export default function Auth() {
       {step === "phone" && (
         <div className="w-full flex flex-col gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1 text-zinc-700 dark:text-zinc-300">Phone Number</label>
+            <label className="block text-sm font-medium mb-1 text-purple-200">Phone Number</label>
             <input
               type="text"
               placeholder="+1234567890"
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
-              className="w-full p-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-transparent dark:text-white"
+              className="w-full p-2 rounded-md border border-purple-500/30 bg-black/40 text-white focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 placeholder-purple-300/30"
             />
           </div>
           <button
             onClick={handleSendCode}
             disabled={isLoading || !phoneNumber}
-            className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition-colors disabled:opacity-50"
+            className="w-full py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-md font-medium transition-colors disabled:opacity-50 shadow-[0_0_10px_rgba(147,51,234,0.5)]"
           >
             {isLoading ? "Sending..." : "Send Code"}
           </button>
@@ -146,19 +152,19 @@ export default function Auth() {
       {step === "code" && (
         <div className="w-full flex flex-col gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1 text-zinc-700 dark:text-zinc-300">Enter Code</label>
+            <label className="block text-sm font-medium mb-1 text-purple-200">Enter Code</label>
             <input
               type="text"
               placeholder="12345"
               value={phoneCode}
               onChange={(e) => setPhoneCode(e.target.value)}
-              className="w-full p-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-transparent dark:text-white"
+              className="w-full p-2 rounded-md border border-purple-500/30 bg-black/40 text-white focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 placeholder-purple-300/30"
             />
           </div>
           <button
             onClick={handleSignIn}
             disabled={isLoading || !phoneCode}
-            className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-md font-medium transition-colors disabled:opacity-50"
+            className="w-full py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-md font-medium transition-colors disabled:opacity-50 shadow-[0_0_10px_rgba(147,51,234,0.5)]"
           >
             {isLoading ? "Signing in..." : "Sign In"}
           </button>
@@ -168,24 +174,24 @@ export default function Auth() {
       {step === "password" && (
           <div className="w-full flex flex-col gap-4">
               <div>
-                  <label className="block text-sm font-medium mb-1 text-zinc-700 dark:text-zinc-300">2FA Password</label>
+                  <label className="block text-sm font-medium mb-1 text-purple-200">2FA Password</label>
                   <input
                       type="password"
                       placeholder="Your Password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full p-2 rounded-md border border-zinc-300 dark:border-zinc-700 bg-transparent dark:text-white"
+                      className="w-full p-2 rounded-md border border-purple-500/30 bg-black/40 text-white focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 placeholder-purple-300/30"
                   />
               </div>
               <button
                   onClick={handlePasswordSignIn}
                   disabled={isLoading || !password}
-                  className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-md font-medium transition-colors disabled:opacity-50"
+                  className="w-full py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-md font-medium transition-colors disabled:opacity-50 shadow-[0_0_10px_rgba(147,51,234,0.5)]"
               >
                   {isLoading ? "Verifying..." : "Verify Password"}
               </button>
           </div>
       )}
-    </div>
+    </CyberpunkCard>
   );
 }
