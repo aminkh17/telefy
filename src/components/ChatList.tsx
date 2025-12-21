@@ -7,7 +7,7 @@ import { MessageSquare, Users, User, Megaphone } from "lucide-react";
 
 // Helper type for dialogs since gram.js types can be tricky
 interface DialogItem {
-  id: bigInt.BigInteger;
+  id: string;
   title: string;
   isGroup: boolean;
   isChannel: boolean;
@@ -40,7 +40,7 @@ export default function ChatList() {
         }
 
         return {
-          id: d.id || BigInt(0),
+          id: d.id ? d.id.toString() : "0",
           title: title,
           isGroup: d.isGroup,
           isChannel: d.isChannel,

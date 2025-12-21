@@ -5,7 +5,8 @@ import { useTelegram } from "../contexts/TelegramProvider";
 import { usePlayer, Track } from "../contexts/PlayerContext";
 import { useChat } from "../contexts/ChatProvider";
 import { Api } from "telegram";
-import { Play, Pause, Music, Search, ArrowLeft } from "lucide-react";
+import { Play, Pause, Search, ArrowLeft } from "lucide-react";
+import bigInt from "big-integer";
 
 export default function ChatMusicView() {
   const { client } = useTelegram();
@@ -44,7 +45,9 @@ export default function ChatMusicView() {
 
     try {
         // Fetch in batches
-        const messages = await client.getMessages(selectedChatId, {
+        const entityId = bigInt(selectedChatId);
+        
+        const messages = await client.getMessages(entityId, {
             limit: 50,
             offsetId: offsetIdRef.current,
             filter: new Api.InputMessagesFilterMusic(),
@@ -53,7 +56,7 @@ export default function ChatMusicView() {
         if (messages.length === 0) {
             setHasMore(false);
         } else {
-            // Update offset for next batch - allow null check although getMessages usually returns Message objects
+            // Update offset for next batch
              const lastMsg = messages[messages.length - 1];
              if (lastMsg) {
                  offsetIdRef.current = lastMsg.id;
@@ -82,9 +85,8 @@ export default function ChatMusicView() {
                              title: title || filename,
                              artist,
                              duration,
-                             url: "",
+                             url: "", // No pre-downloaded URL
                              mimeType: msg.media.document.mimeType || "audio/mpeg",
-                             // @ts-expect-error Storing private message ref
                              _message: msg, 
                          });
                      }
@@ -109,56 +111,9 @@ export default function ChatMusicView() {
     }
   }, [selectedChatId, fetchMusic]);
 
-  const downloadAndPlay = useCallback(async (track: Track) => {
-      // @ts-expect-error Accessing private message ref
-      const msg = track._message;
-      if (!msg || !client) return;
-      
-      console.log("Downloading...", track.title);
-
-      try {
-          const buffer = await client.downloadMedia(msg, {});
-          if (buffer && buffer.length > 0) {
-              const blob = new Blob([buffer], { type: track.mimeType || "audio/mpeg" });
-              const url = URL.createObjectURL(blob);
-              
-              const updatedTrack = { ...track, url };
-              
-              setTracks(prev => prev.map(t => t.id === track.id ? updatedTrack : t));
-              // We just update the track with URL. 
-              // The PlayerContext is already pointing to this track ID, but it needs the URL.
-              // We'll call playTrack again to ensure the context gets the updated track object with URL.
-              // IMPORTANT: Don't pass queue here to avoid loops or resets, just update current track info.
-              playTrack(updatedTrack);
-          }
-      } catch (e) {
-          console.error("Download failed", e);
-      }
-  }, [client, playTrack]);
-
-  // Effect to handle auto-download when currentTrack changes (e.g. via Next/Prev)
-  // and the track belongs to this chat but doesn't have a URL yet.
-  useEffect(() => {
-      if (currentTrack && !currentTrack.url && tracks.some(t => t.id === currentTrack.id)) {
-          // It's in our list but no URL, so download it
-          // Find the full track object from our state which contains the _message
-          const fullTrack = tracks.find(t => t.id === currentTrack.id);
-          if (fullTrack) {
-              downloadAndPlay(fullTrack);
-          }
-      }
-  }, [currentTrack, tracks, downloadAndPlay]);
-
-  const handlePlay = async (track: Track) => {
-      if (track.url) {
-          playTrack(track, filteredTracks);
-          return;
-      }
-      
-      // If no URL, we initiate download logic, but also tell player this is the current track
-      // so the UI updates immediately while downloading
+  const handlePlay = (track: Track) => {
+      // Just tell the player to play. It will handle streaming/downloading via AudioStreamer.
       playTrack(track, filteredTracks);
-      await downloadAndPlay(track);
   };
 
   return (

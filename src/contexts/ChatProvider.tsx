@@ -4,8 +4,8 @@ import React, { createContext, useContext, useState, useCallback } from "react";
 import { Api } from "telegram";
 
 interface ChatContextType {
-  selectedChatId: bigInt.BigInteger | null;
-  selectChat: (chatId: bigInt.BigInteger | null) => void;
+  selectedChatId: string | null;
+  selectChat: (chatId: string | null) => void;
   selectedChatTitle: string | null;
   setSelectedChatTitle: (title: string | null) => void;
 }
@@ -20,10 +20,10 @@ const ChatContext = createContext<ChatContextType>({
 export const useChat = () => useContext(ChatContext);
 
 export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
-  const [selectedChatId, setSelectedChatId] = useState<bigInt.BigInteger | null>(null);
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [selectedChatTitle, setSelectedChatTitleState] = useState<string | null>(null);
 
-  const selectChat = useCallback((chatId: bigInt.BigInteger | null) => {
+  const selectChat = useCallback((chatId: string | null) => {
     setSelectedChatId(chatId);
     if (chatId === null) {
         setSelectedChatTitleState(null);

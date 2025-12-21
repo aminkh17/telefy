@@ -5,7 +5,7 @@ import { usePlayer } from "../contexts/PlayerContext";
 import { Play, Pause, SkipBack, SkipForward, Volume2, Volume1, VolumeX } from "lucide-react";
 
 export default function Player() {
-  const { currentTrack, isPlaying, togglePlay, progress, currentTime, seek, nextTrack, prevTrack, volume, setVolume } = usePlayer();
+  const { currentTrack, isPlaying, togglePlay, progress, currentTime, downloadProgress, seek, nextTrack, prevTrack, volume, setVolume } = usePlayer();
 
   if (!currentTrack) return null;
 
@@ -62,10 +62,18 @@ export default function Player() {
                         max={currentTrack.duration || 100}
                         value={currentTime}
                         onChange={(e) => seek(Number(e.target.value))}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
                     />
+                    
+                    {/* Download Progress Bar */}
                     <div 
-                        className="h-full bg-blue-600 rounded-full relative"
+                        className="absolute h-full bg-zinc-300 dark:bg-zinc-700 rounded-full transition-all duration-300 z-0"
+                        style={{ width: `${downloadProgress}%` }}
+                    />
+                    
+                    {/* Playback Progress Bar */}
+                    <div 
+                        className="h-full bg-blue-600 rounded-full relative z-10 pointer-events-none"
                         style={{ width: `${progress}%` }}
                     >
                         <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white border border-blue-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm" />

@@ -93,8 +93,6 @@ export default function Auth() {
               { apiId, apiHash },
               {
                   password: async () => password,
-                  phoneNumber: phoneNumber,
-                  phoneCode: async () => phoneCode,
                   onError: (err) => { throw err; }
               }
           );
