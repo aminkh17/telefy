@@ -119,6 +119,12 @@ export default function Auth() {
       borderStyle="glitch"
       className="flex flex-col items-center justify-center min-h-[50vh] w-full max-w-md mx-auto p-8"
     >
+      <div className="flex flex-col gap-2 p-1 max-w-xs">
+
+        <div className="relative w-30 h-30 mx-auto">
+          <div className="w-full h-full bg-[url('/vercel.svg')] bg-cover bg-center rounded-lg" />
+        </div>
+      </div>
       <h2 className="text-2xl font-bold mb-6 text-white text-center">Telegram Login</h2>
 
       {error && (
