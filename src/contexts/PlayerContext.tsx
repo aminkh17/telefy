@@ -1,9 +1,6 @@
 "use client";
 
 import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from "react";
-import { useTelegram } from "./TelegramProvider";
-import { AudioStreamer } from "../lib/AudioStreamer";
-import { Api } from "telegram";
 
 export interface Track {
   id: string;
@@ -12,7 +9,6 @@ export interface Track {
   duration: number; // in seconds
   url?: string;
   mimeType?: string;
-  _message?: Api.Message;
   imageUrl?: string;
 }
 
@@ -63,7 +59,6 @@ const PlayerContext = createContext<PlayerContextType>({
 export const usePlayer = () => useContext(PlayerContext);
 
 export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
-  const { client } = useTelegram();
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
@@ -78,14 +73,11 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
   const [reversed, setReversed] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const streamerRef = useRef<AudioStreamer | null>(null);
 
-  // Refs for callbacks to be used in static listeners
   const nextTrackRef = useRef<((auto?: boolean) => void) | undefined>(undefined);
   const prevTrackRef = useRef<(() => void) | undefined>(undefined);
   const seekRef = useRef<((time: number) => void) | undefined>(undefined);
 
-  // Ref-based state access for event listeners
   const stateRef = useRef({ queue, currentTrack, shuffle, repeatMode, reversed, isPlaying });
   useEffect(() => {
       stateRef.current = { queue, currentTrack, shuffle, repeatMode, reversed, isPlaying };
@@ -103,12 +95,11 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
           title: track.title,
           artist: track.artist,
           artwork: [
-              { src: track.imageUrl || '/file.svg', sizes: '96x96', type: 'image/svg+xml' },
+              { src: track.imageUrl || '/file.svg', sizes: '96x96', type: 'image/jpeg' },
           ]
       });
   }, []);
 
-  // Update Media Session when track changes
   useEffect(() => {
       if (currentTrack) {
           updateMediaSessionMetadata(currentTrack);
@@ -116,7 +107,6 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
       }
   }, [currentTrack, updateMediaSessionMetadata, updateMediaSessionState]);
 
-  // Handle volume changes
   useEffect(() => {
       if (audioRef.current) {
           audioRef.current.volume = volume;
@@ -124,7 +114,6 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
   }, [volume]);
 
   const playTrack = useCallback(async (track: Track, newQueue?: Track[]) => {
-    // Immediate state updates for UI responsiveness
     if (newQueue) setQueue(newQueue);
     
     const isSameTrack = currentTrack?.id === track.id;
@@ -142,38 +131,28 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     setCurrentTrack(track);
-    setDownloadProgress(0);
+    setDownloadProgress(0); // Reset, though meaningful progress for streams is tricky
     setIsBuffering(true);
-    setIsPlaying(false); // Validating state
+    setIsPlaying(false);
 
     if (!audio) return;
     
     try {
         if (track.url) {
-            // Direct URL
-            if (streamerRef.current) streamerRef.current.cleanup();
-            
             audio.src = track.url;
             audio.currentTime = 0;
             await audio.play();
-            setDownloadProgress(100);
-        } else if (track._message && client) {
-            // Stream from Telegram
-            if (streamerRef.current) {
-                await streamerRef.current.play(client, track, track._message);
-            }
         } else {
-            console.error("Cannot play track: No URL and no Message/Client found");
+            console.error("Cannot play track: No URL provided");
             setIsBuffering(false);
         }
     } catch (e: any) {
-        // Ignore AbortError from rapid switching
         if (e.name !== 'AbortError') {
             console.error("Play error:", e);
         }
         setIsBuffering(false);
     }
-  }, [currentTrack, client]);
+  }, [currentTrack]);
 
   const togglePlay = useCallback(() => {
     const audio = audioRef.current;
@@ -209,7 +188,6 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (!currentTrack || queue.length === 0) return;
       
-      // Handle Repeat One on Auto (Ended)
       if (auto && repeatMode === 'one') {
           if (audioRef.current) {
               audioRef.current.currentTime = 0;
@@ -222,8 +200,6 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
       const currentIndex = queue.findIndex(t => t.id === currentTrack.id);
 
       if (shuffle) {
-          // Simple random for now
-          // Ensure we don't pick the same track if queue > 1
           if (queue.length === 1) nextIndex = 0;
           else {
               do {
@@ -231,18 +207,17 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
               } while (nextIndex === currentIndex);
           }
       } else {
-          // Normal or Reversed
           if (reversed) {
               nextIndex = currentIndex - 1;
               if (nextIndex < 0) {
                   if (repeatMode === 'all') nextIndex = queue.length - 1;
-                  else nextIndex = -1; // Stop
+                  else nextIndex = -1;
               }
           } else {
               nextIndex = currentIndex + 1;
               if (nextIndex >= queue.length) {
                   if (repeatMode === 'all') nextIndex = 0;
-                  else nextIndex = -1; // Stop
+                  else nextIndex = -1;
               }
           }
       }
@@ -256,18 +231,15 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
       const { queue, currentTrack, shuffle, reversed } = stateRef.current;
       if (!currentTrack || queue.length === 0) return;
       
-      // If playing > 3s, restart track
       if (audioRef.current && audioRef.current.currentTime > 3) {
           audioRef.current.currentTime = 0;
           return;
       }
       
-      // Logic for prev is basically reverse of next
       let prevIndex = -1;
       const currentIndex = queue.findIndex(t => t.id === currentTrack.id);
       
       if (shuffle) {
-           // Random prev? Usually history. For now, random.
            if (queue.length === 1) prevIndex = 0;
            else {
                do {
@@ -276,9 +248,8 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
            }
       } else {
           if (reversed) {
-              // Prev in reversed mode is index + 1
               prevIndex = currentIndex + 1;
-              if (prevIndex >= queue.length) prevIndex = 0; // Loop always on prev
+              if (prevIndex >= queue.length) prevIndex = 0;
           } else {
               prevIndex = currentIndex - 1;
               if (prevIndex < 0) prevIndex = queue.length - 1;
@@ -290,7 +261,6 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
       }
   }, [playTrack]);
 
-  // Keep refs updated for listeners
   useEffect(() => {
       nextTrackRef.current = nextTrack;
       prevTrackRef.current = prevTrack;
@@ -299,11 +269,6 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     audioRef.current = new Audio();
-    // Pass progress callback
-    streamerRef.current = new AudioStreamer(audioRef.current, (prog) => {
-        setDownloadProgress(prog);
-    });
-    
     const audio = audioRef.current;
 
     const updateProgress = () => {
@@ -345,7 +310,6 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
     audio.addEventListener("playing", handlePlaying);
     audio.addEventListener("pause", handlePause);
 
-    // Initialize Media Session actions
     if ('mediaSession' in navigator) {
         navigator.mediaSession.setActionHandler('play', () => {
              audio.play().catch(console.error);
@@ -374,7 +338,6 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
       audio.removeEventListener("playing", handlePlaying);
       audio.removeEventListener("pause", handlePause);
       audio.pause();
-      if (streamerRef.current) streamerRef.current.cleanup();
     };
   }, []); 
 

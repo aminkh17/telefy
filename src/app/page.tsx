@@ -11,7 +11,7 @@ import { GlitchButton } from "@/components/ui/GlitchButton";
 
 export default function Home() {
   const { user, isLoading } = useTelegram();
-  const { selectedChatId } = useChat();
+  const { selectedChat } = useChat();
 
   return (
     <div className="min-h-screen font-[family-name:var(--font-geist-sans)]">
@@ -45,7 +45,7 @@ export default function Home() {
                 <Auth />
               ) : (
                 <>
-                  {!selectedChatId ? <ChatList /> : <ChatMusicView />}
+                  {!selectedChat ? <ChatList /> : <ChatMusicView />}
                   <Player />
                 </>
               )}

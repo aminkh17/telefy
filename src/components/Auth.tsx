@@ -2,11 +2,11 @@
 
 import React, { useState } from "react";
 import { useTelegram } from "../contexts/TelegramProvider";
-import { Api } from "telegram";
 import { CyberpunkCard } from "@/components/ui/cyberpunk-card";
+import { sendCode, signIn, signInWithPassword } from "@/app/actions/auth";
 
 export default function Auth() {
-  const { client, user, apiId, apiHash } = useTelegram();
+  const { user, refreshUser } = useTelegram();
   const [phoneNumber, setPhoneNumber] = useState("");
   const [phoneCode, setPhoneCode] = useState("");
   const [password, setPassword] = useState("");
@@ -17,25 +17,17 @@ export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSendCode = async () => {
-    if (!client) return;
     setIsLoading(true);
     setError("");
     try {
-      const result = await client.invoke(
-        new Api.auth.SendCode({
-          apiId: apiId || 0,
-          apiHash: apiHash || "",
-          phoneNumber: phoneNumber,
-          settings: new Api.CodeSettings({
-            allowFlashcall: false,
-            currentNumber: false,
-            allowAppHash: false,
-          }),
-        })
-      );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setPhoneCodeHash((result as any).phoneCodeHash);
-      setStep("code");
+      const result = await sendCode(phoneNumber);
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      if (result.phoneCodeHash) {
+        setPhoneCodeHash(result.phoneCodeHash);
+        setStep("code");
+      }
     } catch (e: unknown) {
       console.error(e);
       const errMsg = e instanceof Error ? e.message : "Failed to send code.";
@@ -46,58 +38,41 @@ export default function Auth() {
   };
 
   const handleSignIn = async () => {
-    if (!client) return;
     setIsLoading(true);
     setError("");
     try {
-      // Use raw API call as client.signIn helper might be missing or inconsistent
-      await client.invoke(
-        new Api.auth.SignIn({
-          phoneNumber: phoneNumber,
-          phoneCodeHash: phoneCodeHash,
-          phoneCode: phoneCode,
-        })
-      );
+      const result = await signIn(phoneNumber, phoneCodeHash, phoneCode);
 
-      const session = client.session.save();
-      if (typeof session === 'string') {
-        localStorage.setItem("telegram_session", session);
-        window.location.reload();
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      if (result.requiresPassword) {
+        setStep("password");
+      } else if (result.success) {
+        await refreshUser();
+        // No reload needed usually if state updates, but forcing a clear might be good if context issues arise
+        // window.location.reload(); 
       }
     } catch (e: any) {
       console.error(e);
-      // Check for 2FA requirement
-      // gramjs errors put the RPC error message in e.message or e.errorMessage
-      const message = e.message || e.errorMessage || "Failed to sign in.";
-
-      if (typeof message === 'string' && (message.includes("SESSION_PASSWORD_NEEDED") || message.includes("PASSWORD_REQUIRED"))) {
-        setStep("password");
-      } else {
-        setError(typeof message === 'string' ? message : "Unknown error");
-      }
+      setError(e.message || "Failed to sign in.");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handlePasswordSignIn = async () => {
-    if (!client || apiId === null || apiHash === null) return;
     setIsLoading(true);
     setError("");
 
     try {
-      // Use signInWithPassword helper which handles SRP calculation
-      await client.signInWithPassword(
-        { apiId, apiHash },
-        {
-          password: async () => password,
-          onError: (err) => { throw err; }
-        }
-      );
-      const session = client.session.save();
-      if (typeof session === 'string') {
-        localStorage.setItem("telegram_session", session);
-        window.location.reload();
+      const result = await signInWithPassword(password);
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      if (result.success) {
+        await refreshUser();
       }
     } catch (e: any) {
       console.error(e);
@@ -116,7 +91,13 @@ export default function Auth() {
       borderStyle="glitch"
       className="flex flex-col items-center justify-center min-h-[50vh] w-full max-w-md mx-auto p-8"
     >
-      <h2 className="text-2xl font-bold mb-6 text-white text-center">Telegram Login</h2>
+      <div className="flex flex-col gap-2 p-1 max-w-xs">
+
+        <div className="relative w-30 h-30 mx-auto">
+          <div className="w-full h-full bg-[url('/vercel.svg')] bg-cover bg-center rounded-lg" />
+        </div>
+      </div>
+              <h2 className="text-2xl font-bold mb-6 text-white text-center">Telegram Login</h2>
 
       {error && (
         <div className="w-full mb-4 p-3 text-sm text-red-200 bg-red-900/50 rounded-md border border-red-500/50">
